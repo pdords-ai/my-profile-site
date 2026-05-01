@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Hero Icons CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/heroicons@2.0.18/24/solid/index.css">
+
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* 스크롤 애니메이션 */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* 그라데이션 텍스트 */
+    .gradient-text {
+      background: linear-gradient(135deg, #3b82f6 0%, #a855f7 50%, #10b981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* 카드 호버 이펙트 */
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+
+    .card-hover:hover {
+      transform: translateY(-4px);
+      border-color: rgb(59, 130, 246);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+
+    /* 부드러운 스크롤 */
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100">
+
+  <!-- ===== NAVBAR ===== -->
+  <nav id="navbar" class="fixed top-0 w-full z-50 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
+      <!-- 로고 -->
+      <a href="#home" class="text-2xl font-bold gradient-text">
+        <!-- CUSTOMIZE: 본인의 이름으로 바꿔주세요 -->
+        Won Seo
+      </a>
+
+      <!-- 데스크톱 메뉴 -->
+      <div class="hidden md:flex gap-8">
+        <a href="#about" class="nav-link hover:text-blue-400 transition">About</a>
+        <a href="#skills" class="nav-link hover:text-blue-400 transition">Skills</a>
+        <a href="#projects" class="nav-link hover:text-blue-400 transition">Projects</a>
+        <a href="#contact" class="nav-link hover:text-blue-400 transition">Contact</a>
+      </div>
+
+      <!-- 모바일 햄버거 버튼 -->
+      <button id="mobile-menu-btn" class="md:hidden text-blue-400">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- 모바일 메뉴 (숨김) -->
+    <div id="mobile-menu" class="hidden md:hidden bg-gray-900 border-t border-gray-800">
+      <div class="max-w-7xl mx-auto px-8 py-4 space-y-3">
+        <a href="#about" class="block nav-link hover:text-blue-400 transition">About</a>
+        <a href="#skills" class="block nav-link hover:text-blue-400 transition">Skills</a>
+        <a href="#projects" class="block nav-link hover:text-blue-400 transition">Projects</a>
+        <a href="#contact" class="block nav-link hover:text-blue-400 transition">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== HERO SECTION ===== -->
+  <section id="home" class="min-h-screen flex items-center justify-center pt-20 px-8">
+    <div class="text-center fade-in max-w-4xl">
+      <h1 class="text-5xl md:text-6xl font-bold mb-4 gradient-text">
+        <!-- CUSTOMIZE: 본인의 이름 -->
+        Won Seo
+      </h1>
+      <p class="text-xl md:text-2xl text-gray-300 mb-2">
+        <!-- CUSTOMIZE: 본인의 직업/역할 -->
+        Full-Stack Developer
+      </p>
+      <p class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+        <!-- CUSTOMIZE: 본인의 슬로건 -->
+        빌드하고, 배우고, 성장하는 개발자입니다.
+      </p>
+
+      <!-- CTA 버튼 -->
+      <div class="flex flex-col md:flex-row gap-4 justify-center">
+        <a href="#contact" class="px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition">
+          연락하기
+        </a>
+        <!-- CUSTOMIZE: GitHub 링크 변경 -->
+        <a href="https://github.com" target="_blank" class="px-8 py-3 border-2 border-blue-500 text-blue-400 hover:bg-blue-500/10 font-semibold rounded-lg transition">
+          GitHub 보기
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ABOUT SECTION ===== -->
+  <section id="about" class="py-20 px-8 bg-gray-900/50">
+    <div class="max-w-7xl mx-auto">
+      <h2 class="text-4xl font-bold mb-12 text-center">About Me</h2>
+      <div class="grid md:grid-cols-2 gap-12 items-center">
+        <!-- 프로필 아바타 -->
+        <div class="flex justify-center">
+          <div class="w-48 h-48 md:w-56 md:h-56 rounded-full bg-gradient-to-br from-blue-500 to-emerald-400 flex items-center justify-center fade-in">
+            <div class="text-6xl">👨‍💻</div>
+          </div>
+        </div>
+
+        <!-- 자기소개 -->
+        <div class="fade-in">
+          <p class="text-gray-300 text-lg leading-relaxed mb-4">
+            <!-- CUSTOMIZE: 자신의 자기소개 -->
+            안녕하세요! 저는 웹 기술과 모던한 개발 방식에 열정을 가진 개발자입니다.
+            다양한 프로젝트를 통해 실전 경험을 쌓고 있으며, 지속적인 학습과 성장을 추구하고 있습니다.
+          </p>
+          <p class="text-gray-300 text-lg leading-relaxed">
+            <!-- CUSTOMIZE: 추가 자기소개 -->
+            깔끔한 코드, 사용자 중심의 설계, 그리고 팀 협력을 중요하게 생각합니다.
+            새로운 기술을 배우고 도전하는 것을 즐깁니다.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SKILLS SECTION ===== -->
+  <section id="skills" class="py-20 px-8">
+    <div class="max-w-7xl mx-auto">
+      <h2 class="text-4xl font-bold mb-12 text-center">Skills</h2>
+
+      <!-- Frontend -->
+      <div class="mb-12 fade-in">
+        <h3 class="text-2xl font-semibold text-purple-400 mb-6">Frontend</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <!-- CUSTOMIZE: 기술 스택 변경 -->
+          <div class="bg-gray-800 rounded-lg p-4 text-center hover:border-emerald-400 border-2 border-transparent transition">
+            <div class="text-3xl mb-2">🌐</div>
+            <p class="font-semibold">HTML / CSS</p>
+          </div>
+          <div class="bg-gray-800 rounded-lg p-4 text-center hover:border-emerald-400 border-2 border-transparent transition">
+            <div class="text-3xl mb-2">⚛️</div>
+            <p class="font-semibold">React</p>
+          </div>
+          <div class="bg-gray-800 rounded-lg p-4 text-center hover:border-emerald-400 border-2 border-transparent transition">
+            <div class="text-3xl mb-2">📘</div>
+            <p class="font-semibold">TypeScript</p>
+          </div>
+          <div class="bg-gray-800 rounded-lg p-4 text-center hover:border-emerald-400 border-2 border-transparent transition">
+            <div class="text-3xl mb-2">🎨</div>
+            <p class="font-semibold">Tailwind CSS</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Backend -->
+      <div class="mb-12 fade-in">
+        <h3 class="text-2xl font-semibold text-purple-400 mb-6">Backend</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <!-- CUSTOMIZE: 기술 스택 변경 -->
+          <div class="bg-gray-800 rounded-lg p-4 text-center hover:border-emerald-400 border-2 border-transparent transition">
+            <div class="text-3xl mb-2">🐍</div>
+            <p class="font-semibold">Python</p>
+          </div>
+          <div class="bg-gray-800 rounded-lg p-4 text-center hover:border-emerald-400 border-2 border-transparent transition">
+            <div class="text-3xl mb-2">💚</div>
+            <p class="font-semibold">Node.js</p>
+          </div>
+          <div class="bg-gray-800 rounded-lg p-4 text-center hover:border-emerald-400 border-2 border-transparent transition">
+            <div class="text-3xl mb-2">🗄️</div>
+            <p class="font-semibold">PostgreSQL</p>
+          </div>
+          <div class="bg-gray-800 rounded-lg p-4 text-center hover:border-emerald-400 border-2 border-transparent transition">
+            <div class="text-3xl mb-2">🐳</div>
+            <p class="font-semibold">Docker</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tools -->
+      <div class="fade-in">
+        <h3 class="text-2xl font-semibold text-purple-400 mb-6">Tools & Others</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <!-- CUSTOMIZE: 기술 스택 변경 -->
+          <div class="bg-gray-800 rounded-lg p-4 text-center hover:border-emerald-400 border-2 border-transparent transition">
+            <div class="text-3xl mb-2">📦</div>
+            <p class="font-semibold">Git</p>
+          </div>
+          <div class="bg-gray-800 rounded-lg p-4 text-center hover:border-emerald-400 border-2 border-transparent transition">
+            <div class="text-3xl mb-2">⚙️</div>
+            <p class="font-semibold">REST API</p>
+          </div>
+          <div class="bg-gray-800 rounded-lg p-4 text-center hover:border-emerald-400 border-2 border-transparent transition">
+            <div class="text-3xl mb-2">🧪</div>
+            <p class="font-semibold">Testing</p>
+          </div>
+          <div class="bg-gray-800 rounded-lg p-4 text-center hover:border-emerald-400 border-2 border-transparent transition">
+            <div class="text-3xl mb-2">📚</div>
+            <p class="font-semibold">Linux</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PROJECTS SECTION ===== -->
+  <section id="projects" class="py-20 px-8 bg-gray-900/50">
+    <div class="max-w-7xl mx-auto">
+      <h2 class="text-4xl font-bold mb-12 text-center">Projects</h2>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <!-- Project 1 -->
+        <div class="bg-gray-800 rounded-lg p-6 border-2 border-gray-700 card-hover fade-in">
+          <h3 class="text-2xl font-bold mb-2">프로젝트 1</h3>
+          <!-- CUSTOMIZE: 기술 태그 변경 -->
+          <div class="flex gap-2 mb-4 flex-wrap">
+            <span class="text-xs px-2 py-1 bg-emerald-400/20 text-emerald-400 rounded-full">React</span>
+            <span class="text-xs px-2 py-1 bg-emerald-400/20 text-emerald-400 rounded-full">TypeScript</span>
+          </div>
+          <p class="text-gray-400 mb-4 text-sm leading-relaxed">
+            <!-- CUSTOMIZE: 프로젝트 설명 -->
+            현대적인 웹 애플리케이션 개발 프로젝트. React와 TypeScript를 활용하여 사용자 친화적인 인터페이스를 구현했습니다.
+          </p>
+          <div class="flex gap-3">
+            <!-- CUSTOMIZE: 링크 변경 -->
+            <a href="https://github.com" target="_blank" class="flex-1 text-center py-2 text-blue-400 border border-blue-400 rounded hover:bg-blue-400/10 transition">
+              GitHub
+            </a>
+            <a href="#" class="flex-1 text-center py-2 text-purple-400 border border-purple-400 rounded hover:bg-purple-400/10 transition">
+              Live Demo
+            </a>
+          </div>
+        </div>
+
+        <!-- Project 2 -->
+        <div class="bg-gray-800 rounded-lg p-6 border-2 border-gray-700 card-hover fade-in">
+          <h3 class="text-2xl font-bold mb-2">프로젝트 2</h3>
+          <!-- CUSTOMIZE: 기술 태그 변경 -->
+          <div class="flex gap-2 mb-4 flex-wrap">
+            <span class="text-xs px-2 py-1 bg-emerald-400/20 text-emerald-400 rounded-full">Node.js</span>
+            <span class="text-xs px-2 py-1 bg-emerald-400/20 text-emerald-400 rounded-full">PostgreSQL</span>
+          </div>
+          <p class="text-gray-400 mb-4 text-sm leading-relaxed">
+            <!-- CUSTOMIZE: 프로젝트 설명 -->
+            REST API 기반 백엔드 서버 개발. Node.js와 PostgreSQL을 사용하여 확장성 있는 데이터베이스 구조를 설계했습니다.
+          </p>
+          <div class="flex gap-3">
+            <!-- CUSTOMIZE: 링크 변경 -->
+            <a href="https://github.com" target="_blank" class="flex-1 text-center py-2 text-blue-400 border border-blue-400 rounded hover:bg-blue-400/10 transition">
+              GitHub
+            </a>
+            <a href="#" class="flex-1 text-center py-2 text-purple-400 border border-purple-400 rounded hover:bg-purple-400/10 transition">
+              Live Demo
+            </a>
+          </div>
+        </div>
+
+        <!-- Project 3 -->
+        <div class="bg-gray-800 rounded-lg p-6 border-2 border-gray-700 card-hover fade-in">
+          <h3 class="text-2xl font-bold mb-2">프로젝트 3</h3>
+          <!-- CUSTOMIZE: 기술 태그 변경 -->
+          <div class="flex gap-2 mb-4 flex-wrap">
+            <span class="text-xs px-2 py-1 bg-emerald-400/20 text-emerald-400 rounded-full">Python</span>
+            <span class="text-xs px-2 py-1 bg-emerald-400/20 text-emerald-400 rounded-full">머신러닝</span>
+          </div>
+          <p class="text-gray-400 mb-4 text-sm leading-relaxed">
+            <!-- CUSTOMIZE: 프로젝트 설명 -->
+            데이터 분석 및 머신러닝 프로젝트. Python을 사용하여 모델 개발 및 성능 최적화를 진행했습니다.
+          </p>
+          <div class="flex gap-3">
+            <!-- CUSTOMIZE: 링크 변경 -->
+            <a href="https://github.com" target="_blank" class="flex-1 text-center py-2 text-blue-400 border border-blue-400 rounded hover:bg-blue-400/10 transition">
+              GitHub
+            </a>
+            <a href="#" class="flex-1 text-center py-2 text-purple-400 border border-purple-400 rounded hover:bg-purple-400/10 transition">
+              Live Demo
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CONTACT SECTION ===== -->
+  <section id="contact" class="py-20 px-8">
+    <div class="max-w-7xl mx-auto text-center">
+      <h2 class="text-4xl font-bold mb-8 fade-in">Get In Touch</h2>
+      <p class="text-gray-400 text-lg mb-12 max-w-2xl mx-auto fade-in">
+        언제든 연락 주세요. 새로운 기회와 협력을 기다리고 있습니다!
+      </p>
+
+      <div class="flex flex-col md:flex-row gap-4 justify-center fade-in">
+        <!-- CUSTOMIZE: 이메일 주소 변경 -->
+        <a href="mailto:your.email@example.com" class="px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition">
+          📧 Email
+        </a>
+        <!-- CUSTOMIZE: GitHub 링크 변경 -->
+        <a href="https://github.com" target="_blank" class="px-8 py-3 bg-purple-500 hover:bg-purple-600 text-white font-semibold rounded-lg transition">
+          🐙 GitHub
+        </a>
+        <!-- CUSTOMIZE: LinkedIn 링크 추가 (선택) -->
+        <a href="https://linkedin.com" target="_blank" class="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition">
+          💼 LinkedIn
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="py-8 px-8 border-t border-gray-800">
+    <div class="max-w-7xl mx-auto text-center text-gray-500 text-sm">
+      <p>© 2024 My Profile. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    // ===== Navbar 스크롤 효과 =====
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 0) {
+        navbar.classList.add('bg-gray-950/95', 'backdrop-blur', 'border-b', 'border-gray-800');
+      } else {
+        navbar.classList.remove('bg-gray-950/95', 'backdrop-blur', 'border-b', 'border-gray-800');
+      }
+    });
+
+    // ===== 모바일 메뉴 토글 =====
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    mobileMenuBtn.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+
+    // 메뉴 링크 클릭 시 메뉴 닫기
+    document.querySelectorAll('#mobile-menu a').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.add('hidden');
+      });
+    });
+
+    // ===== Intersection Observer (Scroll Animation) =====
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, observerOptions);
+
+    // fade-in 클래스를 가진 모든 요소를 관찰
+    document.querySelectorAll('.fade-in').forEach(element => {
+      observer.observe(element);
+    });
+
+    // ===== 활성 링크 하이라이트 =====
+    const navLinks = document.querySelectorAll('.nav-link');
+    window.addEventListener('scroll', () => {
+      let current = '';
+      const sections = document.querySelectorAll('section');
+
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionHeight = section.clientHeight;
+        if (scrollY >= sectionTop - 200) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('text-blue-400');
+        if (link.getAttribute('href').slice(1) === current) {
+          link.classList.add('text-blue-400');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
