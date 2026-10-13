@@ -13,14 +13,26 @@ jobs:
       - name: Probe
         run: |
           UA="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36"
-          echo "##### old lotto json"
-          curl -sS -m 20 -A "$UA" "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=1100" | head -c 400; echo
-          echo "##### old pension page"
-          curl -sS -m 20 -A "$UA" -o /tmp/o -w "status=%{http_code} final=%{url_effective}\n" -L "https://www.dhlottery.co.kr/gameResult.do?method=win720&Round=200"
-          echo "##### lotto JS context"
-          curl -sS -m 20 -A "$UA" https://www.dhlottery.co.kr/lt645/result > /tmp/l
-          grep -n -B40 -A25 "selectPstLt645InfoNew.do" /tmp/l | cut -c1-220
-          echo "##### pension JS context"
-          curl -sS -m 20 -A "$UA" https://www.dhlottery.co.kr/pt720/result > /tmp/p
-          grep -n -B30 -A30 -E "selectPstPt720WnList.do|selectPstPt720WnInfo.do" /tmp/p | cut -c1-220
-          grep -n -A40 "sendHttpJson *[:=(]\|sendHttpJson: *function\|function sendHttpJson" /tmp/p | head -60 | cut -c1-220
+          B=https://www.dhlottery.co.kr
+          get() {
+            echo "##### $1"
+            curl -sS -m 30 -A "$UA" -H "X-Requested-With: XMLHttpRequest" -H "Accept: application/json, text/javascript, */*" \
+              -H "Referer: $B/$2" -o /tmp/r -w "status=%{http_code} type=%{content_type} size=%{size_download}\n" "$B$1"
+            head -c 1800 /tmp/r; echo
+            python3 - <<'PY' || true
+          import json
+          d = json.load(open('/tmp/r'))
+          def walk(o, p=''):
+              if isinstance(o, dict):
+                  for k, v in o.items(): walk(v, p + '.' + k)
+              elif isinstance(o, list):
+                  print(p, 'list len', len(o))
+                  if o: print(p, 'first', json.dumps(o[0], ensure_ascii=False)[:900]); print(p, 'last', json.dumps(o[-1], ensure_ascii=False)[:300])
+          walk(d)
+          PY
+          }
+          get "/lt645/selectPstLt645InfoNew.do?srchDir=center&srchLtEpsd=1100" lt645/result
+          get "/lt645/selectPstLt645InfoNew.do?srchDir=latest" lt645/result
+          get "/lt645/selectPstLt645InfoNew.do?srchDir=older&srchCursorLtEpsd=100" lt645/result
+          get "/pt720/selectPstPt720WnList.do" pt720/result
+          get "/pt720/selectPstPt720Info.do?srchPsltEpsd=200" pt720/result
