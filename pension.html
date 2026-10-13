@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#030712">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>연금복권 번호 생성기</title>
+
+  <style>
+    :root {
+      --bg: #030712;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --accent: #f59e0b;
+      --accent2: #ef4444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    }
+
+    body {
+      min-height: 100dvh;
+      padding: calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+    }
+
+    .wrap { max-width: 480px; margin: 0 auto; }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    header a { color: var(--muted); text-decoration: none; font-size: 14px; padding: 8px 0; }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #a855f7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 16px; }
+    .tabs a {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .tabs a.on { background: #1f2937; color: var(--text); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .label { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+    .label-row { display: flex; justify-content: space-between; align-items: center; }
+
+    .seg { display: grid; gap: 6px; }
+    .seg.c5 { grid-template-columns: repeat(5, 1fr); }
+    .seg.c6 { grid-template-columns: repeat(10, 1fr); }
+    .seg.c6 button { grid-column: span 2; }
+    .seg.c6 button:nth-child(-n+2) { grid-column: span 5; }
+    .seg button {
+      height: 44px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0b1220;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .seg button.on { background: var(--accent); border-color: var(--accent); color: #111; }
+    .seg button:disabled { opacity: 0.35; }
+
+    .hint { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+
+    .go {
+      width: 100%;
+      height: 56px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+    }
+    .go:active { transform: scale(0.98); }
+
+    .ghost {
+      height: 30px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* 결과 티켓 */
+    .ticket {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .ticket:last-child { border-bottom: none; }
+
+    .jo {
+      flex: 0 0 auto;
+      min-width: 44px;
+      height: 38px;
+      padding: 0 8px;
+      border-radius: 10px;
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 15px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pop 0.35s ease-out both;
+    }
+
+    .digits { display: flex; gap: 5px; flex: 1; justify-content: space-between; }
+
+    .digit {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+      box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.2), inset 3px 3px 6px rgba(255, 255, 255, 0.3);
+      animation: pop 0.35s ease-out both;
+    }
+    /* 자리별 색상 (디자인용, 공식 색상 아님) */
+    .digit.p0 { background: #ef4444; }
+    .digit.p1 { background: #f97316; }
+    .digit.p2 { background: #eab308; }
+    .digit.p3 { background: #3b82f6; }
+    .digit.p4 { background: #8b5cf6; }
+    .digit.p5 { background: #6b7280; }
+
+    @keyframes pop {
+      0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+      80% { transform: scale(1.1) rotate(10deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0); }
+    }
+
+    .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 20px 0; }
+
+    .history-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .history-item:last-child { border-bottom: none; }
+    .history-item time { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .history-item .mini { display: flex; gap: 4px; align-items: center; margin-bottom: 4px; }
+    .history-item .jo { min-width: 34px; height: 26px; font-size: 12px; border-radius: 7px; animation: none; }
+    .history-item .digit { width: 26px; height: 26px; font-size: 12px; animation: none; }
+
+    /* 당첨 기준 표 */
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 7px 4px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { color: var(--muted); font-weight: 600; }
+    td:first-child { font-weight: 700; white-space: nowrap; }
+    .src { font-size: 11px; color: #6b7280; margin-top: 8px; line-height: 1.5; }
+    .src a { color: var(--muted); }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      transform: translateX(-50%) translateY(100px);
+      background: #1f2937;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 14px;
+      transition: transform 0.25s ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    footer { font-size: 11px; color: #6b7280; text-align: center; line-height: 1.6; margin-top: 8px; }
+
+    @media (max-width: 360px) {
+      .digit { width: 32px; height: 32px; font-size: 15px; }
+      .jo { min-width: 38px; height: 32px; font-size: 13px; }
+      .digits { gap: 3px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .digit, .jo { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>연금복권720+ 생성기</h1>
+      <a href="index.html">← 홈</a>
+    </header>
+
+    <nav class="tabs">
+      <a href="lotto.html">로또 6/45</a>
+      <a href="pension.html" class="on">연금복권720+</a>
+    </nav>
+
+    <!-- 조 선택 -->
+    <section class="card">
+      <div class="label">조 선택</div>
+      <div class="seg c6" id="joSeg">
+        <button data-jo="rand" class="on">랜덤</button>
+        <button data-jo="all">모든 조</button>
+        <button data-jo="1">1조</button>
+        <button data-jo="2">2조</button>
+        <button data-jo="3">3조</button>
+        <button data-jo="4">4조</button>
+        <button data-jo="5">5조</button>
+      </div>
+      <div class="hint" id="joHint"></div>
+    </section>
+
+    <!-- 매수 -->
+    <section class="card">
+      <div class="label">매수</div>
+      <div class="seg c5" id="countSeg">
+        <button data-n="1">1</button>
+        <button data-n="2">2</button>
+        <button data-n="3">3</button>
+        <button data-n="4">4</button>
+        <button data-n="5" class="on">5</button>
+      </div>
+    </section>
+
+    <button class="go" id="goBtn">번호 생성</button>
+
+    <!-- 결과 -->
+    <section class="card">
+      <div class="label label-row">
+        <span>생성 결과</span>
+        <button class="ghost" id="copyBtn">복사</button>
+      </div>
+      <div id="result"><div class="empty">버튼을 눌러 번호를 생성하세요</div></div>
+    </section>
+
+    <!-- 기록 -->
+    <section class="card">
+      <div class="label label-row">
+        <span>최근 기록 (최대 10회)</span>
+        <button class="ghost" id="clearHist">지우기</button>
+      </div>
+      <div id="history"></div>
+    </section>
+
+    <!-- 당첨 기준 -->
+    <section class="card">
+      <div class="label">당첨 기준 (참고)</div>
+      <table>
+        <thead><tr><th>등위</th><th>조건</th><th>당첨금</th></tr></thead>
+        <tbody>
+          <tr><td>1등</td><td>조 + 6자리 일치</td><td>월 700만원 × 20년</td></tr>
+          <tr><td>2등</td><td>조 다름, 6자리 일치</td><td>월 100만원 × 10년</td></tr>
+          <tr><td>3등</td><td>끝 5자리 일치</td><td>100만원</td></tr>
+          <tr><td>4등</td><td>끝 4자리 일치</td><td>10만원</td></tr>
+          <tr><td>5등</td><td>끝 3자리 일치</td><td>5만원</td></tr>
+          <tr><td>6등</td><td>끝 2자리 일치</td><td>5천원</td></tr>
+          <tr><td>7등</td><td>끝 1자리 일치</td><td>1천원</td></tr>
+          <tr><td>보너스</td><td>조 무관, 보너스 6자리 일치</td><td>월 100만원 × 10년</td></tr>
+        </tbody>
+      </table>
+      <div class="src">
+        세전 금액 기준. 정확한 규정은
+        <a href="https://www.dhlottery.co.kr/pt720/intro" target="_blank" rel="noopener">동행복권 공식 사이트</a>에서 확인하세요.
+      </div>
+    </section>
+
+    <footer>
+      번호는 브라우저의 crypto.getRandomValues로 무작위 생성되며<br>
+      당첨 확률을 높여주지 않습니다. 재미로만 이용하세요.
+    </footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (function () {
+      const JO_COUNT = 5;
+      const DIGITS = 6;
+      const HIST_KEY = 'pension-history-v1';
+
+      let joMode = 'rand'; // 'rand' | 'all' | '1'~'5'
+      let count = 5;
+      let lastTickets = [];
+
+      const $ = (id) => document.getElementById(id);
+
+      // 0 이상 max 미만의 균등 난수 (modulo bias 제거를 위한 rejection sampling)
+      function randInt(max) {
+        const buf = new Uint32Array(1);
+        const limit = Math.floor(0x100000000 / max) * max;
+        let x;
+        do {
+          crypto.getRandomValues(buf);
+          x = buf[0];
+        } while (x >= limit);
+        return x % max;
+      }
+
+      function randomDigits() {
+        return Array.from({ length: DIGITS }, () => randInt(10)).join('');
+      }
+
+      function generate() {
+        // 모든 조: 같은 6자리 번호를 1~5조로 한 세트(5장)
+        if (joMode === 'all') {
+          const num = randomDigits();
+          return Array.from({ length: JO_COUNT }, (_, i) => ({ jo: i + 1, num }));
+        }
+        return Array.from({ length: count }, () => ({
+          jo: joMode === 'rand' ? randInt(JO_COUNT) + 1 : Number(joMode),
+          num: randomDigits(),
+        }));
+      }
+
+      function ticketHTML(t, animBase) {
+        const anim = (d) => (animBase != null ? ` style="animation-delay:${animBase + d}ms"` : '');
+        return (
+          `<span class="jo"${anim(0)}>${t.jo}조</span><div class="digits">` +
+          [...t.num].map((d, i) => `<div class="digit p${i}"${anim((i + 1) * 60)}>${d}</div>`).join('') +
+          `</div>`
+        );
+      }
+
+      // ---- 조 선택 ----
+      function renderJoHint() {
+        const countBtns = [...$('countSeg').children];
+        countBtns.forEach((b) => (b.disabled = joMode === 'all'));
+        $('joHint').textContent =
+          joMode === 'all'
+            ? '같은 6자리 번호를 1~5조 전부로 한 세트(5장) 생성합니다.'
+            : joMode === 'rand'
+              ? '매장마다 조와 번호를 모두 무작위로 생성합니다.'
+              : `${joMode}조로 고정하고 번호만 무작위로 생성합니다.`;
+      }
+
+      $('joSeg').addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        joMode = btn.dataset.jo;
+        [...$('joSeg').children].forEach((b) => b.classList.toggle('on', b === btn));
+        renderJoHint();
+      });
+
+      // ---- 매수 ----
+      $('countSeg').addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn || btn.disabled) return;
+        count = Number(btn.dataset.n);
+        [...$('countSeg').children].forEach((b) => b.classList.toggle('on', b === btn));
+      });
+
+      // ---- 생성 ----
+      $('goBtn').addEventListener('click', () => {
+        lastTickets = generate();
+        $('result').innerHTML = lastTickets
+          .map((t, i) => `<div class="ticket">${ticketHTML(t, i * 120)}</div>`)
+          .join('');
+        if (navigator.vibrate) navigator.vibrate(30);
+        saveHistory(lastTickets);
+        renderHistory();
+      });
+
+      // ---- 복사 ----
+      $('copyBtn').addEventListener('click', async () => {
+        if (!lastTickets.length) return toast('먼저 번호를 생성하세요');
+        const text = lastTickets.map((t) => `${t.jo}조 ${t.num}`).join('\n');
+        try {
+          await navigator.clipboard.writeText(text);
+          toast('복사되었습니다');
+        } catch (_) {
+          toast('복사에 실패했어요');
+        }
+      });
+
+      // ---- 기록 (localStorage, 실패해도 동작) ----
+      function loadHistory() {
+        try {
+          return JSON.parse(localStorage.getItem(HIST_KEY)) || [];
+        } catch (_) {
+          return [];
+        }
+      }
+
+      function saveHistory(tickets) {
+        const hist = loadHistory();
+        hist.unshift({ t: Date.now(), tickets });
+        try {
+          localStorage.setItem(HIST_KEY, JSON.stringify(hist.slice(0, 10)));
+        } catch (_) { /* 저장 불가 환경 무시 */ }
+      }
+
+      function renderHistory() {
+        const hist = loadHistory();
+        if (!hist.length) {
+          $('history').innerHTML = '<div class="empty">기록이 없습니다</div>';
+          return;
+        }
+        $('history').innerHTML = hist
+          .map((h) =>
+            `<div class="history-item"><time>${new Date(h.t).toLocaleString('ko-KR')}</time>` +
+            h.tickets.map((t) => `<div class="mini">${ticketHTML(t)}</div>`).join('') +
+            `</div>`)
+          .join('');
+      }
+
+      $('clearHist').addEventListener('click', () => {
+        try { localStorage.removeItem(HIST_KEY); } catch (_) {}
+        renderHistory();
+      });
+
+      // ---- 토스트 ----
+      let toastTimer;
+      function toast(msg) {
+        const el = $('toast');
+        el.textContent = msg;
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('show'), 1600);
+      }
+
+      renderJoHint();
+      renderHistory();
+    })();
+  </script>
+</body>
+</html>

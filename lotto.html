@@ -44,7 +44,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
     }
 
     header a { color: var(--muted); text-decoration: none; font-size: 14px; padding: 8px 0; }
@@ -57,6 +57,21 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
+
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 16px; }
+    .tabs a {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .tabs a.on { background: #1f2937; color: var(--text); }
 
     .card {
       background: var(--card);
@@ -218,6 +233,11 @@
       <h1>로또 6/45 생성기</h1>
       <a href="index.html">← 홈</a>
     </header>
+
+    <nav class="tabs">
+      <a href="lotto.html" class="on">로또 6/45</a>
+      <a href="pension.html">연금복권720+</a>
+    </nav>
 
     <!-- 게임 수 -->
     <section class="card">
