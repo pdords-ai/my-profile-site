@@ -46,8 +46,11 @@ async function readExisting(name) {
   }
 }
 
+// 당첨번호가 바뀌었을 때만 쓴다 (updatedAt만 바뀐 커밋이 생기지 않도록)
 async function save(name, draws) {
   draws.sort((a, b) => a.round - b.round);
+  const existing = await readExisting(name);
+  if (JSON.stringify(existing) === JSON.stringify(draws)) return;
   const body = { source: BASE, updatedAt: new Date().toISOString(), draws };
   await mkdir(DATA_DIR, { recursive: true });
   await writeFile(new URL(name, DATA_DIR), JSON.stringify(body) + '\n');
