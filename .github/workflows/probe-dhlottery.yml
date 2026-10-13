@@ -1,0 +1,32 @@
+name: Probe dhlottery endpoints
+
+on:
+  push:
+    paths:
+      - .github/workflows/probe-dhlottery.yml
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe
+        run: |
+          UA="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36"
+          for u in \
+            "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=1100" \
+            "https://dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=1100" \
+            "https://www.dhlottery.co.kr/gameResult.do?method=win720&Round=200" \
+            "https://www.dhlottery.co.kr/pt720/result" \
+            "https://m.dhlottery.co.kr/pt720/result" \
+            "https://www.dhlottery.co.kr/lt645/result" ; do
+            echo "=================== $u"
+            curl -sS -L -m 20 -A "$UA" -D /tmp/h -o /tmp/b "$u" -w "status=%{http_code} final=%{url_effective} size=%{size_download}\n" || echo "curl failed"
+            grep -i '^content-type' /tmp/h || true
+            echo "--- head"
+            head -c 1500 /tmp/b | iconv -f euc-kr -t utf-8 2>/dev/null || head -c 1500 /tmp/b
+            echo
+            echo "--- endpoint hints"
+            grep -oiE "(url|fetch|ajax|action)[^;]{0,120}" /tmp/b | grep -iE "\.do|/api|json|selectPstPt|pt720|lt645" | sort -u | head -40 || true
+            grep -oiE "/[a-zA-Z0-9_/.-]*\.(js)" /tmp/b | sort -u | head -30 || true
+          done
