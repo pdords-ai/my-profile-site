@@ -202,6 +202,53 @@
     .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 20px 0; }
     .hidden { display: none !important; }
 
+    /* 설정 / AI */
+    .icon-btn { width: 36px; height: 36px; padding: 0; background: transparent; border: 0; font-size: 18px; }
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      height: 40px;
+      padding: 0 12px;
+      background: #0b1220;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font: inherit;
+      font-size: 14px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 999px;
+      vertical-align: 2px;
+      margin-left: 6px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .badge.ai { border-color: #a855f7; color: #c084fc; }
+    .comfort {
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(168, 85, 247, 0.08);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      margin-bottom: 14px;
+    }
+    .summary { font-size: 13px; line-height: 1.6; color: var(--muted); margin-top: 12px; }
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      vertical-align: -2px;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     .toast {
       position: fixed;
       left: 50%;
@@ -224,8 +271,25 @@
     <header>
       <a href="index.html">← 홈</a>
       <h1>감정 다이어리</h1>
-      <span style="width:36px"></span>
+      <button class="icon-btn" id="settingsBtn" aria-label="AI 분석 설정" title="AI 분석 설정">⚙️</button>
     </header>
+
+    <!-- AI 설정 -->
+    <section class="card hidden" id="settingsCard">
+      <h2>AI 분석 설정 <small>Claude API</small></h2>
+      <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+      <div class="row" style="margin-top:8px">
+        <button class="primary" id="keySave">키 저장</button>
+        <button class="danger" id="keyDel">키 삭제</button>
+      </div>
+      <p class="hint" style="margin-top:10px" id="keyStatus"></p>
+      <p class="hint" style="margin-top:8px">
+        키는 이 기기 브라우저(localStorage)에만 저장되고, 일기를 분석할 때 Anthropic API로 직접 전송됩니다.
+        AI 분석을 켜면 <b>일기 내용이 Anthropic API로 전송</b>되고 호출마다 요금이 발생해요.
+        키가 유출되지 않도록 공용 기기에서는 쓰지 말고, Console에서 사용 한도(spend limit)를 걸어두는 걸 권장합니다.
+        키가 없거나 호출에 실패하면 기기 내 단어 사전 분석으로 대신합니다.
+      </p>
+    </section>
 
     <!-- 일기 작성 -->
     <section class="card">
@@ -238,15 +302,12 @@
         <button class="primary" id="save">분석하고 저장</button>
         <button class="danger hidden" id="del">삭제</button>
       </div>
-      <p class="hint" style="margin-top:10px">
-        일기는 이 브라우저(localStorage)에만 저장되며 외부 서버로 전송되지 않습니다.
-        감정 분석은 한국어 감정 단어 사전 기반이라 문맥·반어법은 정확히 파악하지 못할 수 있어요.
-      </p>
+      <p class="hint" style="margin-top:10px" id="privacyHint"></p>
     </section>
 
     <!-- 분석 결과 -->
     <section class="card hidden" id="resultCard">
-      <h2>감정 분석 <small id="resultDate"></small></h2>
+      <h2>감정 분석 <span class="badge" id="resSource"></span> <small id="resultDate"></small></h2>
       <div class="score">
         <div class="emoji" id="resEmoji"></div>
         <div>
@@ -257,6 +318,8 @@
       <div class="stack" id="resStack"></div>
       <div class="legend" id="resLegend"></div>
       <div class="chips" id="resWords"></div>
+      <p class="summary hidden" id="resSummary"></p>
+      <button class="hidden" id="aiRetry" style="width:100%;margin-top:12px">✨ AI로 다시 분석</button>
     </section>
 
     <!-- 추천 -->
@@ -515,6 +578,130 @@
 
     const ytLink = q => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
 
+    // ===== Claude AI 분석 =====
+    // 브라우저에서 Anthropic API를 직접 호출 (키는 이 기기 localStorage에만 보관)
+    const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.130.0/+esm';
+    const AI_MODEL = 'claude-opus-5-5';
+    const KEY_STORE = 'moodDiary.apiKey';
+
+    function getApiKey() {
+      try { return localStorage.getItem(KEY_STORE) || ''; } catch { return ''; }
+    }
+
+    let sdkPromise = null;
+    function loadSdk() {
+      if (!sdkPromise) sdkPromise = import(SDK_URL).catch(e => { sdkPromise = null; throw e; });
+      return sdkPromise;
+    }
+
+    const AI_SCHEMA = {
+      type: 'object',
+      properties: {
+        mood: { type: 'integer', description: '하루 전체 기분 점수. 0=매우 나쁨, 50=중립, 100=매우 좋음' },
+        emotions: {
+          type: 'object',
+          description: '각 감정의 강도(0~100). 일기에 드러나지 않은 감정은 0',
+          properties: Object.fromEntries(EMO_KEYS.map(k => [k, { type: 'integer' }])),
+          required: EMO_KEYS,
+          additionalProperties: false,
+        },
+        dominant: { type: 'string', enum: [...EMO_KEYS, 'neutral'] },
+        keywords: { type: 'array', items: { type: 'string' }, description: '감정 판단의 근거가 된 일기 속 표현 (최대 6개, 원문 그대로)' },
+        summary: { type: 'string', description: '오늘 감정 흐름 요약 1~2문장' },
+        comfort: { type: 'string', description: '일기 작성자에게 건네는 따뜻한 한마디 1~2문장' },
+        music: {
+          type: 'array',
+          description: '실제로 존재하는 잘 알려진 곡 3개. 확실하지 않은 곡은 넣지 말 것',
+          items: {
+            type: 'object',
+            properties: { title: { type: 'string' }, artist: { type: 'string' }, reason: { type: 'string' } },
+            required: ['title', 'artist', 'reason'],
+            additionalProperties: false,
+          },
+        },
+        activities: {
+          type: 'array',
+          description: '오늘 기분에 맞는 구체적인 활동 3개',
+          items: {
+            type: 'object',
+            properties: { emoji: { type: 'string' }, title: { type: 'string' }, reason: { type: 'string' } },
+            required: ['emoji', 'title', 'reason'],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ['mood', 'emotions', 'dominant', 'keywords', 'summary', 'comfort', 'music', 'activities'],
+      additionalProperties: false,
+    };
+
+    const AI_SYSTEM = `당신은 감정 일기 앱의 감정 분석가입니다. 사용자가 쓴 한국어 일기를 읽고 감정 상태를 분석합니다.
+감정 종류: joy(기쁨), calm(평온), sad(슬픔), anger(분노), anxiety(불안), tired(피로).
+- 문맥, 반어법, 하루 중 감정 변화를 고려해 하루 전체의 감정을 평가하세요. 끝맺음의 감정에 조금 더 비중을 두세요.
+- 음악은 실제로 존재하는 곡만 추천하고, 곡명과 아티스트가 확실하지 않으면 다른 곡을 고르세요. 한국 곡과 해외 곡을 섞어도 좋습니다.
+- 활동은 오늘 바로 할 수 있는 작고 구체적인 것으로 제안하세요.
+- 위로의 말은 진단하거나 훈계하지 말고, 담백하고 따뜻하게 쓰세요.
+- 모든 텍스트는 한국어로 작성하세요.`;
+
+    async function analyzeWithAI(text) {
+      const { default: Anthropic } = await loadSdk();
+      const client = new Anthropic({ apiKey: getApiKey(), dangerouslyAllowBrowser: true });
+      const response = await client.beta.messages.create({
+        model: AI_MODEL,
+        max_tokens: 8000,
+        betas: ['server-side-fallback-2026-07-01'],
+        fallbacks: 'default', // 안전 분류기가 거절하면 서버에서 다른 모델로 자동 재시도
+        output_config: { effort: 'low', format: { type: 'json_schema', schema: AI_SCHEMA } },
+        system: AI_SYSTEM,
+        messages: [{ role: 'user', content: `<diary>\n${text}\n</diary>` }],
+      });
+      if (response.stop_reason === 'refusal') throw new Error('AI가 이 일기의 분석을 거절했어요.');
+      if (response.stop_reason === 'max_tokens') throw new Error('AI 응답이 잘렸어요.');
+      const block = response.content.find(b => b.type === 'text');
+      if (!block) throw new Error('AI 응답이 비어 있어요.');
+      const data = JSON.parse(block.text);
+      return { ...data, forText: text, model: response.model, at: new Date().toISOString() };
+    }
+
+    async function aiErrorMessage(e) {
+      let A = null;
+      try { A = (await loadSdk()).default; } catch {}
+      if (!A) return 'AI 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해주세요.';
+      // 구체적인 에러부터 확인
+      if (e instanceof A.AuthenticationError) return 'API 키가 올바르지 않아요.';
+      if (e instanceof A.PermissionDeniedError) return '이 키로는 해당 모델을 쓸 수 없어요.';
+      if (e instanceof A.RateLimitError) return '요청 한도를 초과했어요. 잠시 후 다시 시도해주세요.';
+      if (e instanceof A.BadRequestError) return `요청 오류: ${e.message}`;
+      if (e instanceof A.APIConnectionError) return 'API에 연결하지 못했어요.';
+      if (e instanceof A.APIError) return `API 오류 (${e.status ?? '알 수 없음'})`;
+      if (e instanceof SyntaxError) return 'AI 응답을 해석하지 못했어요.';
+      return (e && e.message) || '알 수 없는 오류';
+    }
+
+    const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Math.round(Number(n) || 0)));
+
+    // AI 결과를 단어 사전 분석과 같은 모양으로 맞춤
+    function normalizeAI(ai) {
+      const scores = Object.fromEntries(EMO_KEYS.map(k => [k, clamp(ai.emotions?.[k], 0, 100)]));
+      const sum = EMO_KEYS.reduce((t, k) => t + scores[k], 0);
+      const ratio = Object.fromEntries(EMO_KEYS.map(k => [k, sum ? scores[k] / sum : 0]));
+      const dominant = EMO_KEYS.includes(ai.dominant) ? ai.dominant : null;
+      return {
+        source: 'ai',
+        mood: clamp(ai.mood, 0, 100),
+        scores, ratio, dominant,
+        hits: (ai.keywords || []).slice(0, 6).map(w => ({ word: String(w), emo: null, negated: false })),
+        ai,
+      };
+    }
+
+    // 저장된 AI 결과가 현재 일기 내용과 일치하면 AI 결과, 아니면 단어 사전 분석
+    function getAnalysis(date) {
+      const e = entries[date];
+      if (!e) return null;
+      if (e.ai && e.ai.forText === e.text) return normalizeAI(e.ai);
+      return { source: 'local', ...analyze(e.text) };
+    }
+
     // ===== 저장소 =====
     const STORE_KEY = 'moodDiary.v1';
     function load() {
@@ -575,9 +762,15 @@
       $('recCard').classList.toggle('hidden', !show);
       if (!show) return;
 
-      const r = analyze(entry.text);
+      const r = getAnalysis(date);
       const lbl = moodLabel(r.mood);
       $('resultDate').textContent = fmtDate(date);
+      const src = $('resSource');
+      src.textContent = r.source === 'ai' ? '✨ AI' : '단어 사전';
+      src.classList.toggle('ai', r.source === 'ai');
+      $('resSummary').textContent = r.ai?.summary || '';
+      $('resSummary').classList.toggle('hidden', !r.ai?.summary);
+      $('aiRetry').classList.toggle('hidden', !getApiKey() || aiBusy);
       $('resEmoji').textContent = lbl.emoji;
       $('resScore').textContent = r.mood;
       $('resLabel').textContent = r.dominant
@@ -602,7 +795,8 @@
         const key = h.word + h.emo;
         if (seen.has(key)) continue;
         seen.add(key);
-        words.append(el('span', { class: 'chip', style: `border-color:${EMOTIONS[h.emo].color};color:${EMOTIONS[h.emo].color}` },
+        const c = h.emo ? EMOTIONS[h.emo].color : '';
+        words.append(el('span', { class: 'chip', style: c ? `border-color:${c};color:${c}` : '' },
           h.negated ? `${h.word} (부정)` : h.word));
       }
 
@@ -626,12 +820,28 @@
             el('span', { class: 'go' }, 'YouTube ↗'))))
       );
 
-      body.append(musicGroup(rec.shift ? '🎧 지금 기분에 공감하는 음악' : '🎧 지금 기분에 어울리는 음악', rec.match));
-      if (rec.shift) body.append(musicGroup('🌈 기분 전환을 돕는 음악', rec.shift));
+      const activityList = r.ai
+        ? (r.ai.activities || []).map(a => [a.emoji || '🌱', a.title, a.reason])
+        : rec.activities;
+
+      if (r.ai) {
+        if (r.ai.comfort) body.append(el('div', { class: 'comfort' }, '💬 ', r.ai.comfort));
+        body.append(el('div', { class: 'rec-group' },
+          el('div', { class: 'rec-title' }, '🎧 AI 추천 음악'),
+          el('div', { class: 'rec-list' }, ...(r.ai.music || []).map(m =>
+            el('a', { class: 'rec', href: ytLink(`${m.artist} ${m.title}`), target: '_blank', rel: 'noopener noreferrer' },
+              el('span', { class: 'ic' }, '🎵'),
+              el('div', {}, el('div', {}, `${m.title} - ${m.artist}`), m.reason ? el('div', { class: 'sub' }, m.reason) : null),
+              el('span', { class: 'go' }, 'YouTube ↗')))),
+          el('p', { class: 'hint', style: 'margin-top:6px' }, 'AI가 고른 곡이라 드물게 실제와 다를 수 있어요. 링크는 YouTube 검색 결과로 연결됩니다.')));
+      } else {
+        body.append(musicGroup(rec.shift ? '🎧 지금 기분에 공감하는 음악' : '🎧 지금 기분에 어울리는 음악', rec.match));
+        if (rec.shift) body.append(musicGroup('🌈 기분 전환을 돕는 음악', rec.shift));
+      }
 
       body.append(el('div', { class: 'rec-group' },
         el('div', { class: 'rec-title' }, '🌱 추천 활동'),
-        el('div', { class: 'rec-list' }, ...rec.activities.map(([ic, title, sub]) =>
+        el('div', { class: 'rec-list' }, ...activityList.map(([ic, title, sub]) =>
           el('div', { class: 'rec' },
             el('span', { class: 'ic' }, ic),
             el('div', {}, el('div', {}, title), sub ? el('div', { class: 'sub' }, sub) : null))))
@@ -651,8 +861,8 @@
       for (let i = 0; i < 7; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        const e = entries[localISO(d)];
-        if (e && analyze(e.text).mood < 30) low++;
+        const r = getAnalysis(localISO(d));
+        if (r && r.mood < 30) low++;
       }
       return low >= 4;
     }
@@ -671,7 +881,7 @@
     function renderChart() {
       const dates = rangeDates();
       const points = dates
-        .map((d, i) => entries[d] ? { d, i, r: analyze(entries[d].text) } : null)
+        .map((d, i) => entries[d] ? { d, i, r: getAnalysis(d) } : null)
         .filter(Boolean);
 
       const W = 520, H = 200, padL = 28, padR = 10, padT = 10, padB = 24;
@@ -771,7 +981,7 @@
       }
       const selected = $('date').value;
       for (const d of dates) {
-        const r = analyze(entries[d].text);
+        const r = getAnalysis(d);
         box.append(el('button', { class: 'entry' + (d === selected ? ' on' : ''), onclick: () => selectDate(d) },
           el('span', { class: 'em' }, r.dominant ? EMOTIONS[r.dominant].emoji : moodLabel(r.mood).emoji),
           el('div', { class: 'body' },
@@ -785,7 +995,7 @@
       $('date').value = date;
       $('text').value = entries[date]?.text || '';
       $('del').classList.toggle('hidden', !entries[date]);
-      $('save').textContent = entries[date] ? '수정하고 다시 분석' : '분석하고 저장';
+      if (!aiBusy) $('save').textContent = entries[date] ? '수정하고 다시 분석' : '분석하고 저장';
       renderAll();
       if (scroll && entries[date]) $('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -797,15 +1007,87 @@
     }
 
     // ===== 이벤트 =====
-    $('save').addEventListener('click', () => {
+    let aiBusy = false;
+
+    function setBusy(busy) {
+      aiBusy = busy;
+      for (const id of ['save', 'aiRetry', 'del']) $(id).disabled = busy;
+      if (busy) $('save').replaceChildren(el('span', { class: 'spinner' }), 'AI가 분석 중…');
+    }
+
+    // AI 분석을 실행해 entries[date].ai 에 저장. 실패하면 단어 사전 분석이 그대로 쓰임
+    async function runAI(date) {
+      const entry = entries[date];
+      if (!entry || !getApiKey()) return;
+      setBusy(true);
+      try {
+        const ai = await analyzeWithAI(entry.text);
+        // 분석 도중 내용이 바뀌거나 삭제됐으면 결과 버림
+        if (entries[date] && entries[date].text === ai.forText) {
+          entries[date].ai = ai;
+          persist();
+          toast('AI 분석을 완료했어요.');
+        }
+      } catch (e) {
+        console.error(e);
+        toast(`${await aiErrorMessage(e)} 단어 사전 분석으로 표시합니다.`);
+      } finally {
+        setBusy(false);
+        selectDate($('date').value, $('date').value === date);
+      }
+    }
+
+    $('save').addEventListener('click', async () => {
       const date = $('date').value;
       const text = $('text').value.trim();
       if (!date) return toast('날짜를 선택해주세요.');
       if (!text) return toast('일기 내용을 입력해주세요.');
+      const prev = entries[date];
       entries[date] = { text, updatedAt: new Date().toISOString() };
+      if (prev && prev.ai && prev.ai.forText === text) entries[date].ai = prev.ai; // 내용 그대로면 재분석 안 함
       if (!persist()) return;
-      toast('저장했어요.');
       selectDate(date);
+      if (getApiKey() && !entries[date].ai) await runAI(date);
+      else toast('저장했어요.');
+    });
+
+    $('aiRetry').addEventListener('click', () => runAI($('date').value));
+
+    // ===== 설정 =====
+    function renderSettings() {
+      const has = !!getApiKey();
+      $('keyStatus').textContent = has
+        ? `✅ 키 저장됨 (…${getApiKey().slice(-4)}) · 모델: ${AI_MODEL}`
+        : '키가 없으면 기기 내 단어 사전으로만 분석해요.';
+      $('privacyHint').textContent = has
+        ? '일기는 이 브라우저(localStorage)에 저장되고, AI 분석을 위해 Anthropic API로 전송됩니다.'
+        : '일기는 이 브라우저(localStorage)에만 저장되며 외부로 전송되지 않습니다. 감정 분석은 한국어 단어 사전 기반이라 문맥·반어법은 정확히 파악하지 못할 수 있어요. ⚙️에서 Claude API 키를 넣으면 AI 분석을 쓸 수 있어요.';
+    }
+
+    $('settingsBtn').addEventListener('click', () => {
+      const card = $('settingsCard');
+      card.classList.toggle('hidden');
+      if (!card.classList.contains('hidden')) $('apiKey').focus();
+    });
+
+    $('keySave').addEventListener('click', () => {
+      const key = $('apiKey').value.trim();
+      if (!key) return toast('API 키를 입력해주세요.');
+      if (!key.startsWith('sk-ant-')) return toast('Anthropic API 키는 sk-ant- 로 시작해요.');
+      try { localStorage.setItem(KEY_STORE, key); } catch { return toast('키를 저장하지 못했어요.'); }
+      $('apiKey').value = '';
+      $('settingsCard').classList.add('hidden');
+      toast('키를 저장했어요. 이제 AI로 분석합니다.');
+      renderSettings();
+      renderAll();
+    });
+
+    $('keyDel').addEventListener('click', () => {
+      if (!getApiKey() || !confirm('저장된 API 키를 삭제할까요?')) return;
+      try { localStorage.removeItem(KEY_STORE); } catch {}
+      toast('키를 삭제했어요.');
+      renderSettings();
+      renderAll();
     });
 
     $('del').addEventListener('click', () => {
@@ -847,6 +1129,7 @@
         for (const [d, v] of Object.entries(data)) {
           if (/^\d{4}-\d{2}-\d{2}$/.test(d) && v && typeof v.text === 'string') {
             entries[d] = { text: v.text, updatedAt: v.updatedAt || new Date().toISOString() };
+            if (v.ai && typeof v.ai === 'object' && v.ai.forText === v.text) entries[d].ai = v.ai;
             n++;
           }
         }
@@ -861,6 +1144,7 @@
     // ===== 초기화 =====
     const todayISO = localISO(new Date());
     $('date').max = todayISO;
+    renderSettings();
     selectDate(todayISO, false);
   </script>
 </body>
