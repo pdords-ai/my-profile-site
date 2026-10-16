@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#030712">
+  <title>감정 다이어리</title>
+
+  <style>
+    :root {
+      --bg: #030712;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --accent: #3b82f6;
+      /* 감정별 색상 */
+      --joy: #fbbf24;
+      --calm: #34d399;
+      --sad: #60a5fa;
+      --anger: #f87171;
+      --anxiety: #a78bfa;
+      --tired: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    }
+
+    body {
+      min-height: 100dvh;
+      padding: calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+    }
+
+    .wrap { max-width: 560px; margin: 0 auto; }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    header a { color: var(--muted); text-decoration: none; font-size: 14px; padding: 8px 0; }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #3b82f6 0%, #a855f7 50%, #10b981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h2 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+    h2 small { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row.between { justify-content: space-between; }
+
+    input[type="date"], textarea {
+      background: #0b1220;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font: inherit;
+    }
+    input[type="date"] { height: 38px; padding: 0 10px; color-scheme: dark; }
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      padding: 12px;
+      line-height: 1.6;
+      resize: vertical;
+      margin: 10px 0;
+    }
+    textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+    button {
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #1f2937;
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); flex: 1; }
+    button.ghost { background: transparent; color: var(--muted); }
+    button.danger { color: var(--anger); }
+    button:disabled { opacity: .5; cursor: default; }
+
+    .hint { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+    /* 분석 결과 */
+    .score {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .score .emoji { font-size: 44px; line-height: 1; }
+    .score .num { font-size: 28px; font-weight: 800; }
+    .score .label { color: var(--muted); font-size: 13px; }
+
+    .stack {
+      display: flex;
+      height: 14px;
+      border-radius: 7px;
+      overflow: hidden;
+      background: var(--border);
+      margin-bottom: 10px;
+    }
+    .stack span { height: 100%; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--muted); }
+    .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: 0; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .chip {
+      font-size: 12px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    /* 그래프 */
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .seg button { height: 30px; padding: 0 10px; border: 0; border-radius: 0; font-size: 12px; background: transparent; color: var(--muted); }
+    .seg button.on { background: #1f2937; color: var(--text); }
+
+    svg { display: block; width: 100%; height: auto; }
+    svg text { fill: var(--muted); font-size: 10px; }
+    .pt { cursor: pointer; }
+
+    .bars { display: grid; gap: 8px; }
+    .bar { display: grid; grid-template-columns: 56px 1fr 32px; gap: 8px; align-items: center; font-size: 13px; }
+    .bar .track { height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+    .bar .fill { height: 100%; border-radius: 5px; }
+    .bar .n { text-align: right; color: var(--muted); font-size: 12px; }
+
+    /* 추천 */
+    .rec-group { margin-bottom: 14px; }
+    .rec-group:last-child { margin-bottom: 0; }
+    .rec-title { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .rec-list { display: grid; gap: 6px; }
+    .rec {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .rec .ic { font-size: 18px; }
+    .rec .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .rec .go { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+    /* 기록 목록 */
+    .entries { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .entry {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      height: auto;
+      font-weight: 400;
+    }
+    .entry.on { border-color: var(--accent); }
+    .entry .em { font-size: 22px; }
+    .entry .body { min-width: 0; flex: 1; }
+    .entry .date { font-size: 12px; color: var(--muted); }
+    .entry .txt { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .entry .sc { font-weight: 700; font-size: 14px; }
+
+    .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 20px 0; }
+    .hidden { display: none !important; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      background: #1f2937;
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity .2s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a href="index.html">← 홈</a>
+      <h1>감정 다이어리</h1>
+      <span style="width:36px"></span>
+    </header>
+
+    <!-- 일기 작성 -->
+    <section class="card">
+      <div class="row between">
+        <h2 style="margin:0">오늘의 일기</h2>
+        <input type="date" id="date" aria-label="날짜">
+      </div>
+      <textarea id="text" placeholder="오늘 어떤 하루였나요? 있었던 일과 느낀 감정을 자유롭게 적어보세요.&#10;&#10;예) 아침부터 너무 피곤했지만 점심에 친구랑 맛있는 걸 먹어서 기분이 좋아졌다."></textarea>
+      <div class="row">
+        <button class="primary" id="save">분석하고 저장</button>
+        <button class="danger hidden" id="del">삭제</button>
+      </div>
+      <p class="hint" style="margin-top:10px">
+        일기는 이 브라우저(localStorage)에만 저장되며 외부 서버로 전송되지 않습니다.
+        감정 분석은 한국어 감정 단어 사전 기반이라 문맥·반어법은 정확히 파악하지 못할 수 있어요.
+      </p>
+    </section>
+
+    <!-- 분석 결과 -->
+    <section class="card hidden" id="resultCard">
+      <h2>감정 분석 <small id="resultDate"></small></h2>
+      <div class="score">
+        <div class="emoji" id="resEmoji"></div>
+        <div>
+          <div class="num"><span id="resScore"></span><span style="font-size:14px;color:var(--muted)"> / 100</span></div>
+          <div class="label" id="resLabel"></div>
+        </div>
+      </div>
+      <div class="stack" id="resStack"></div>
+      <div class="legend" id="resLegend"></div>
+      <div class="chips" id="resWords"></div>
+    </section>
+
+    <!-- 추천 -->
+    <section class="card hidden" id="recCard">
+      <h2>오늘의 추천 <small id="recFor"></small></h2>
+      <div id="recBody"></div>
+    </section>
+
+    <!-- 그래프 -->
+    <section class="card">
+      <div class="row between" style="margin-bottom:12px">
+        <h2 style="margin:0">기분 흐름</h2>
+        <div class="seg" id="range">
+          <button data-days="7">7일</button>
+          <button data-days="30" class="on">30일</button>
+          <button data-days="90">90일</button>
+        </div>
+      </div>
+      <div id="chart"></div>
+      <p class="hint" style="margin-top:8px">점을 누르면 그날의 일기를 볼 수 있어요. 50 = 중립</p>
+
+      <h2 style="margin-top:18px">감정 분포 <small id="distRange"></small></h2>
+      <div class="bars" id="dist"></div>
+    </section>
+
+    <!-- 기록 목록 -->
+    <section class="card">
+      <div class="row between" style="margin-bottom:12px">
+        <h2 style="margin:0">지난 기록</h2>
+        <div class="row" style="gap:4px">
+          <button class="ghost" id="export" style="height:30px;padding:0 8px;font-size:12px">내보내기</button>
+          <button class="ghost" id="importBtn" style="height:30px;padding:0 8px;font-size:12px">가져오기</button>
+          <input type="file" id="importFile" accept="application/json,.json" class="hidden">
+        </div>
+      </div>
+      <div class="entries" id="entries"></div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ===== 감정 정의 =====
+    // valence: 기분 점수 계산 시 가중치 (+ 긍정, - 부정)
+    const EMOTIONS = {
+      joy:     { name: '기쁨', emoji: '😄', color: 'var(--joy)',     valence: 1 },
+      calm:    { name: '평온', emoji: '😌', color: 'var(--calm)',    valence: 0.7 },
+      sad:     { name: '슬픔', emoji: '😢', color: 'var(--sad)',     valence: -1 },
+      anger:   { name: '분노', emoji: '😠', color: 'var(--anger)',   valence: -1 },
+      anxiety: { name: '불안', emoji: '😰', color: 'var(--anxiety)', valence: -0.9 },
+      tired:   { name: '피로', emoji: '😴', color: 'var(--tired)',   valence: -0.6 },
+    };
+    const EMO_KEYS = Object.keys(EMOTIONS);
+
+    // ===== 감정 사전 =====
+    // 한국어는 활용형이 다양하므로 어간(stem) 위주로 등록. [단어, 감정, 강도]
+    // '화'(대화/영화), '울'(서울) 처럼 오탐이 잦은 짧은 어간은 일부러 피함.
+    const LEXICON = [
+      // 기쁨
+      ['기쁘', 'joy', 2], ['기뻤', 'joy', 2], ['기뻐', 'joy', 2], ['행복', 'joy', 2.5], ['즐겁', 'joy', 2],
+      ['즐거', 'joy', 2], ['신나', 'joy', 2], ['신났', 'joy', 2], ['신난', 'joy', 2], ['설레', 'joy', 2],
+      ['설렜', 'joy', 2], ['뿌듯', 'joy', 2], ['좋았', 'joy', 1.5], ['좋아', 'joy', 1.5], ['좋다', 'joy', 1.5],
+      ['좋은', 'joy', 1], ['좋네', 'joy', 1.5], ['웃었', 'joy', 1.5], ['웃음', 'joy', 1.5], ['웃겼', 'joy', 1.5],
+      ['재밌', 'joy', 1.5], ['재미있', 'joy', 1.5], ['감사', 'joy', 1.5], ['고마', 'joy', 1.5], ['고맙', 'joy', 1.5],
+      ['최고', 'joy', 2], ['맛있', 'joy', 1], ['성공', 'joy', 1.5], ['합격', 'joy', 2.5], ['칭찬', 'joy', 1.5],
+      ['사랑', 'joy', 1.5], ['만족', 'joy', 1.5], ['신기', 'joy', 1], ['든든', 'joy', 1.5], ['감동', 'joy', 2],
+      ['기분 좋', 'joy', 2], ['기분좋', 'joy', 2],
+      // 평온
+      ['편안', 'calm', 2], ['편했', 'calm', 1.5], ['편하', 'calm', 1.5], ['여유', 'calm', 2], ['차분', 'calm', 2],
+      ['평화', 'calm', 2], ['느긋', 'calm', 2], ['평온', 'calm', 2], ['안정', 'calm', 1.5], ['개운', 'calm', 1.5],
+      ['상쾌', 'calm', 1.5], ['산책', 'calm', 1], ['쉬었', 'calm', 1], ['휴식', 'calm', 1.5], ['힐링', 'calm', 2],
+      ['다행', 'calm', 1.5], ['괜찮았', 'calm', 1], ['무난', 'calm', 1], ['잔잔', 'calm', 1.5], ['홀가분', 'calm', 2],
+      ['안심', 'calm', 1.5],
+      // 슬픔
+      ['슬프', 'sad', 2.5], ['슬펐', 'sad', 2.5], ['슬퍼', 'sad', 2.5], ['우울', 'sad', 2.5], ['눈물', 'sad', 2],
+      ['울었', 'sad', 2], ['울고', 'sad', 2], ['울컥', 'sad', 2], ['외롭', 'sad', 2], ['외로', 'sad', 2],
+      ['쓸쓸', 'sad', 2], ['허전', 'sad', 1.5], ['속상', 'sad', 2], ['서운', 'sad', 1.5], ['실망', 'sad', 2],
+      ['그립', 'sad', 1.5], ['그리워', 'sad', 1.5], ['아쉽', 'sad', 1], ['아쉬', 'sad', 1], ['후회', 'sad', 2],
+      ['상처', 'sad', 2], ['괴롭', 'sad', 2], ['괴로', 'sad', 2], ['힘들', 'sad', 1.5], ['힘든', 'sad', 1.5],
+      ['힘드', 'sad', 1.5], ['떨어졌', 'sad', 1], ['불합격', 'sad', 2.5], ['이별', 'sad', 2.5], ['헤어졌', 'sad', 2.5],
+      ['허무', 'sad', 1.5], ['기분 나쁘', 'sad', 1.5], ['기분이 안 좋', 'sad', 2], ['아팠', 'sad', 1], ['아프', 'sad', 1],
+      // 분노
+      ['화가 나', 'anger', 2.5], ['화가 났', 'anger', 2.5], ['화났', 'anger', 2.5], ['화나', 'anger', 2.5],
+      ['화를 냈', 'anger', 2], ['짜증', 'anger', 2], ['열받', 'anger', 2.5], ['빡치', 'anger', 2.5], ['빡쳤', 'anger', 2.5],
+      ['억울', 'anger', 2], ['답답', 'anger', 1.5], ['싫다', 'anger', 1.5], ['싫었', 'anger', 1.5], ['싫어', 'anger', 1.5],
+      ['어이없', 'anger', 2], ['황당', 'anger', 1.5], ['분하', 'anger', 2], ['분노', 'anger', 2.5], ['미웠', 'anger', 2],
+      ['밉', 'anger', 1.5], ['싸웠', 'anger', 2], ['다퉜', 'anger', 2], ['무례', 'anger', 2], ['불공평', 'anger', 2],
+      // 불안
+      ['불안', 'anxiety', 2.5], ['걱정', 'anxiety', 2], ['긴장', 'anxiety', 2], ['초조', 'anxiety', 2], ['두렵', 'anxiety', 2],
+      ['두려', 'anxiety', 2], ['무섭', 'anxiety', 2], ['무서', 'anxiety', 2], ['떨리', 'anxiety', 1.5], ['떨렸', 'anxiety', 1.5],
+      ['막막', 'anxiety', 2], ['조마조마', 'anxiety', 2], ['압박', 'anxiety', 2], ['부담', 'anxiety', 1.5], ['스트레스', 'anxiety', 2],
+      ['마감', 'anxiety', 1], ['시험', 'anxiety', 0.8], ['면접', 'anxiety', 1], ['혼란', 'anxiety', 1.5], ['겁', 'anxiety', 1.5],
+      ['조급', 'anxiety', 2], ['당황', 'anxiety', 1.5], ['자신 없', 'anxiety', 1.5], ['자신없', 'anxiety', 1.5],
+      // 피로
+      ['피곤', 'tired', 2], ['지치', 'tired', 2], ['지쳤', 'tired', 2], ['지친', 'tired', 2], ['졸리', 'tired', 1.5],
+      ['졸려', 'tired', 1.5], ['졸렸', 'tired', 1.5], ['무기력', 'tired', 2.5], ['귀찮', 'tired', 1.5], ['녹초', 'tired', 2.5],
+      ['기진맥진', 'tired', 2.5], ['야근', 'tired', 1.5], ['밤샘', 'tired', 2], ['밤새', 'tired', 1.5], ['못 잤', 'tired', 2],
+      ['잠을 설', 'tired', 2], ['나른', 'tired', 1], ['번아웃', 'tired', 2.5], ['고단', 'tired', 2], ['뻐근', 'tired', 1],
+    ];
+
+    const EMOJI_LEXICON = [
+      [/[😀😃😄😁😆😊🥰😍🤩🥳😂🤣]/gu, 'joy', 1.5],
+      [/[😌🙂☺️🍃]/gu, 'calm', 1],
+      [/[😢😭😞😔🥺💔]/gu, 'sad', 1.5],
+      [/[😠😡🤬💢]/gu, 'anger', 1.5],
+      [/[😰😨😱😟😥]/gu, 'anxiety', 1.5],
+      [/[😴🥱😪😩😫]/gu, 'tired', 1.5],
+    ];
+
+    const INTENSIFIERS = ['너무', '정말', '진짜', '엄청', '완전', '매우', '아주', '많이', '되게', '굉장히', '몹시'];
+    // 부정 표현: 단어 뒤에 오는 형태 / 앞에 오는 형태
+    const NEG_AFTER = /^[가-힣]{0,2}\s?(지 않|지않|지 못|지못|지는 않|진 않|지도 않|지 마|지마|지 말)/;
+    const NEG_BEFORE = /(안|못)\s$/;
+
+    // 부정된 긍정 → 슬픔, 부정된 부정 → 평온으로 약하게 전환
+    const NEG_FLIP = { joy: 'sad', calm: 'anxiety', sad: 'calm', anger: 'calm', anxiety: 'calm', tired: 'calm' };
+
+    function analyze(text) {
+      const scores = Object.fromEntries(EMO_KEYS.map(k => [k, 0]));
+      const hits = [];
+      // 긴 단어부터 매칭해서 '기분 좋' 이 '좋' 계열과 중복 집계되지 않도록 사용한 구간을 표시
+      const used = new Array(text.length).fill(false);
+      const sorted = [...LEXICON].sort((a, b) => b[0].length - a[0].length);
+
+      for (const [word, emo, weight] of sorted) {
+        let idx = text.indexOf(word);
+        while (idx !== -1) {
+          const end = idx + word.length;
+          if (!used.slice(idx, end).some(Boolean)) {
+            for (let i = idx; i < end; i++) used[i] = true;
+
+            const before = text.slice(Math.max(0, idx - 8), idx);
+            const after = text.slice(end, end + 8);
+            let w = weight;
+            if (INTENSIFIERS.some(t => before.includes(t))) w *= 1.5;
+
+            let target = emo;
+            const negated = NEG_AFTER.test(after) || NEG_BEFORE.test(before);
+            if (negated) {
+              target = NEG_FLIP[emo];
+              w *= 0.6;
+            }
+            scores[target] += w;
+            hits.push({ word, emo: target, negated });
+          }
+          idx = text.indexOf(word, end);
+        }
+      }
+
+      for (const [re, emo, weight] of EMOJI_LEXICON) {
+        const m = text.match(re);
+        if (m) {
+          scores[emo] += weight * m.length;
+          hits.push({ word: m[0], emo, negated: false });
+        }
+      }
+
+      // 느낌표는 감정 강도를 약간 증폭
+      const bangs = Math.min((text.match(/!/g) || []).length, 5);
+      const total = EMO_KEYS.reduce((s, k) => s + scores[k], 0);
+      if (total > 0 && bangs) for (const k of EMO_KEYS) scores[k] *= 1 + bangs * 0.05;
+
+      // 기분 점수(0~100): 50 = 중립. 감정 강도 총합이 작을수록 50 쪽으로 수렴(+2 스무딩)
+      let pos = 0, neg = 0;
+      for (const k of EMO_KEYS) {
+        const v = scores[k] * EMOTIONS[k].valence;
+        if (v > 0) pos += v; else neg -= v;
+      }
+      const mood = Math.round(50 + 50 * (pos - neg) / (pos + neg + 2));
+
+      const sum = EMO_KEYS.reduce((s, k) => s + scores[k], 0);
+      const ratio = Object.fromEntries(EMO_KEYS.map(k => [k, sum ? scores[k] / sum : 0]));
+      const dominant = sum ? EMO_KEYS.reduce((a, b) => scores[a] >= scores[b] ? a : b) : null;
+
+      return { mood, scores, ratio, dominant, hits };
+    }
+
+    function moodLabel(score) {
+      if (score >= 80) return { emoji: '🤩', text: '아주 좋은 하루' };
+      if (score >= 62) return { emoji: '😊', text: '좋은 하루' };
+      if (score >= 45) return { emoji: '😐', text: '무난한 하루' };
+      if (score >= 28) return { emoji: '😕', text: '조금 힘든 하루' };
+      return { emoji: '😣', text: '많이 힘든 하루' };
+    }
+
+    // ===== 추천 =====
+    // 음악은 특정 곡을 지정하지 않고 분위기 키워드로 YouTube 검색 링크를 제공 (항상 유효한 결과를 보장하기 위함)
+    const RECOMMEND = {
+      joy: {
+        match: ['신나는 팝 플레이리스트', '드라이브 시티팝', '기분 좋은 K-pop 댄스'],
+        shift: null,
+        activities: [
+          ['📸', '오늘의 좋은 순간을 사진이나 한 줄로 남기기', '좋은 기억을 기록하면 나중에 다시 꺼내볼 수 있어요'],
+          ['💌', '고마운 사람에게 짧은 메시지 보내기', '긍정적인 감정을 나누면 더 오래 갑니다'],
+          ['🏃', '가벼운 러닝이나 댄스로 에너지 발산하기', ''],
+        ],
+      },
+      calm: {
+        match: ['lofi hip hop 공부 음악', '잔잔한 어쿠스틱 플레이리스트', '카페 재즈'],
+        shift: null,
+        activities: [
+          ['📖', '읽고 싶던 책 몇 페이지 읽기', ''],
+          ['🍵', '따뜻한 차 한 잔과 함께 하루 돌아보기', ''],
+          ['🧘', '10분 스트레칭 또는 요가', '편안한 컨디션을 유지하는 데 좋아요'],
+        ],
+      },
+      sad: {
+        match: ['비 오는 날 감성 발라드', '위로가 되는 잔잔한 노래'],
+        shift: ['따뜻한 어쿠스틱 힐링 음악', '기분 좋아지는 노래 플레이리스트'],
+        activities: [
+          ['☀️', '20분 정도 햇볕 쬐며 걷기', '가벼운 야외 활동은 기분 회복에 도움이 됩니다'],
+          ['📞', '믿을 만한 사람과 통화하거나 만나기', '혼자 감당하지 않아도 괜찮아요'],
+          ['✍️', '지금 느끼는 감정을 판단 없이 적어보기', ''],
+          ['🛁', '따뜻한 샤워 후 일찍 잠자리에 들기', ''],
+        ],
+      },
+      anger: {
+        match: ['스트레스 해소 록 플레이리스트', '강렬한 운동 음악'],
+        shift: ['마음이 차분해지는 피아노', '자연의 소리 빗소리'],
+        activities: [
+          ['🥊', '땀이 날 정도로 운동하기', '쌓인 긴장을 몸으로 풀어내기'],
+          ['🌬️', '4초 들이쉬고 6초 내쉬는 호흡 5분', '날숨을 길게 하면 흥분을 가라앉히는 데 도움이 돼요'],
+          ['🗒️', '화가 난 이유를 종이에 쓰고 잠시 덮어두기', '바로 반응하기보다 한 템포 쉬어가기'],
+        ],
+      },
+      anxiety: {
+        match: ['불안할 때 듣는 차분한 음악', '명상 음악 10분'],
+        shift: ['ambient 집중 음악', '자연의 소리 숲 새소리'],
+        activities: [
+          ['🌬️', '박스 호흡(4초 들숨-4초 멈춤-4초 날숨-4초 멈춤)', ''],
+          ['✅', '걱정을 "할 수 있는 일 / 없는 일"로 나눠 적기', '통제 가능한 것 하나만 먼저 해보기'],
+          ['🚶', '휴대폰 없이 10분 산책', ''],
+          ['👀', '5-4-3-2-1 감각 그라운딩', '보이는 것 5개, 들리는 것 4개… 순서로 지금에 집중하기'],
+        ],
+      },
+      tired: {
+        match: ['잠잘 때 듣는 수면 음악', '피곤할 때 듣는 잔잔한 음악'],
+        shift: ['상쾌한 아침 어쿠스틱', '활기찬 인디 팝'],
+        activities: [
+          ['😴', '오늘은 평소보다 30분 일찍 잠자리에 들기', ''],
+          ['💧', '물 한 잔 마시고 화면에서 잠시 눈 떼기', ''],
+          ['🙆', '목·어깨 스트레칭 5분', ''],
+          ['📵', '자기 전 30분은 휴대폰 내려놓기', ''],
+        ],
+      },
+      neutral: {
+        match: ['오늘의 인기 플레이리스트', '산뜻한 인디 음악'],
+        shift: null,
+        activities: [
+          ['✍️', '오늘 있었던 일 하나를 조금 더 자세히 적어보기', '감정 단어를 함께 쓰면 분석이 더 정확해져요'],
+          ['🚶', '가벼운 산책', ''],
+          ['🎯', '내일 해보고 싶은 작은 일 하나 정하기', ''],
+        ],
+      },
+    };
+
+    const ytLink = q => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
+
+    // ===== 저장소 =====
+    const STORE_KEY = 'moodDiary.v1';
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORE_KEY);
+        const data = raw ? JSON.parse(raw) : {};
+        return data && typeof data === 'object' ? data : {};
+      } catch { return {}; }
+    }
+    function persist() {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(entries)); return true; }
+      catch { toast('저장에 실패했어요. 브라우저 저장소 설정을 확인해주세요.'); return false; }
+    }
+
+    let entries = load(); // { 'YYYY-MM-DD': { text, updatedAt } }
+    let rangeDays = 30;
+
+    // ===== 유틸 =====
+    const $ = id => document.getElementById(id);
+    function el(tag, props = {}, ...children) {
+      const e = document.createElement(tag);
+      for (const [k, v] of Object.entries(props)) {
+        if (k === 'class') e.className = v;
+        else if (k === 'style') e.style.cssText = v;
+        else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+        else e.setAttribute(k, v);
+      }
+      for (const c of children) if (c != null) e.append(c);
+      return e;
+    }
+    function svgEl(tag, attrs = {}) {
+      const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+      return e;
+    }
+    function localISO(d) {
+      const z = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+    }
+    function fmtDate(iso) {
+      const [y, m, d] = iso.split('-').map(Number);
+      const day = '일월화수목금토'[new Date(y, m - 1, d).getDay()];
+      return `${m}월 ${d}일 (${day})`;
+    }
+    function toast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => t.classList.remove('show'), 1800);
+    }
+
+    // ===== 렌더링 =====
+    function renderResult(date) {
+      const entry = entries[date];
+      const show = !!entry;
+      $('resultCard').classList.toggle('hidden', !show);
+      $('recCard').classList.toggle('hidden', !show);
+      if (!show) return;
+
+      const r = analyze(entry.text);
+      const lbl = moodLabel(r.mood);
+      $('resultDate').textContent = fmtDate(date);
+      $('resEmoji').textContent = lbl.emoji;
+      $('resScore').textContent = r.mood;
+      $('resLabel').textContent = r.dominant
+        ? `${lbl.text} · 주된 감정: ${EMOTIONS[r.dominant].name}`
+        : `${lbl.text} · 감정 단어를 찾지 못했어요`;
+
+      const stack = $('resStack');
+      const legend = $('resLegend');
+      stack.replaceChildren();
+      legend.replaceChildren();
+      for (const k of EMO_KEYS) {
+        const p = r.ratio[k];
+        if (p <= 0) continue;
+        stack.append(el('span', { style: `width:${p * 100}%;background:${EMOTIONS[k].color}`, title: `${EMOTIONS[k].name} ${Math.round(p * 100)}%` }));
+        legend.append(el('span', {}, el('i', { style: `background:${EMOTIONS[k].color}` }), `${EMOTIONS[k].name} ${Math.round(p * 100)}%`));
+      }
+
+      const words = $('resWords');
+      words.replaceChildren();
+      const seen = new Set();
+      for (const h of r.hits) {
+        const key = h.word + h.emo;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        words.append(el('span', { class: 'chip', style: `border-color:${EMOTIONS[h.emo].color};color:${EMOTIONS[h.emo].color}` },
+          h.negated ? `${h.word} (부정)` : h.word));
+      }
+
+      renderRecommend(r);
+    }
+
+    function renderRecommend(r) {
+      const key = r.dominant || 'neutral';
+      const rec = RECOMMEND[key];
+      $('recFor').textContent = r.dominant ? `${EMOTIONS[key].emoji} ${EMOTIONS[key].name}` : '';
+
+      const body = $('recBody');
+      body.replaceChildren();
+
+      const musicGroup = (title, list) => el('div', { class: 'rec-group' },
+        el('div', { class: 'rec-title' }, title),
+        el('div', { class: 'rec-list' }, ...list.map(q =>
+          el('a', { class: 'rec', href: ytLink(q), target: '_blank', rel: 'noopener noreferrer' },
+            el('span', { class: 'ic' }, '🎵'),
+            el('span', {}, q),
+            el('span', { class: 'go' }, 'YouTube ↗'))))
+      );
+
+      body.append(musicGroup(rec.shift ? '🎧 지금 기분에 공감하는 음악' : '🎧 지금 기분에 어울리는 음악', rec.match));
+      if (rec.shift) body.append(musicGroup('🌈 기분 전환을 돕는 음악', rec.shift));
+
+      body.append(el('div', { class: 'rec-group' },
+        el('div', { class: 'rec-title' }, '🌱 추천 활동'),
+        el('div', { class: 'rec-list' }, ...rec.activities.map(([ic, title, sub]) =>
+          el('div', { class: 'rec' },
+            el('span', { class: 'ic' }, ic),
+            el('div', {}, el('div', {}, title), sub ? el('div', { class: 'sub' }, sub) : null))))
+      ));
+
+      // 부정 감정이 강하게 지속되면 전문 상담 안내
+      if (needsSupportNotice()) {
+        body.append(el('p', { class: 'hint', style: 'margin-top:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px' },
+          '최근 힘든 날이 이어지고 있어요. 혼자 감당하기 어렵다면 정신건강위기상담 109(24시간) 등 전문 상담의 도움을 받아보세요.'));
+      }
+    }
+
+    // 최근 7일 중 기록이 4일 이상이고 그 중 기분 점수 30 미만이 4일 이상인 경우
+    function needsSupportNotice() {
+      const today = new Date();
+      let low = 0;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const e = entries[localISO(d)];
+        if (e && analyze(e.text).mood < 30) low++;
+      }
+      return low >= 4;
+    }
+
+    function rangeDates() {
+      const today = new Date();
+      const list = [];
+      for (let i = rangeDays - 1; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        list.push(localISO(d));
+      }
+      return list;
+    }
+
+    function renderChart() {
+      const dates = rangeDates();
+      const points = dates
+        .map((d, i) => entries[d] ? { d, i, r: analyze(entries[d].text) } : null)
+        .filter(Boolean);
+
+      const W = 520, H = 200, padL = 28, padR = 10, padT = 10, padB = 24;
+      const iw = W - padL - padR, ih = H - padT - padB;
+      const x = i => padL + (dates.length === 1 ? iw / 2 : (i / (dates.length - 1)) * iw);
+      const y = v => padT + ih - (v / 100) * ih;
+
+      const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': '기간별 기분 점수 그래프' });
+
+      // 긍정/부정 영역 배경
+      svg.append(svgEl('rect', { x: padL, y: y(100), width: iw, height: ih / 2, fill: 'rgba(52,211,153,0.05)' }));
+      svg.append(svgEl('rect', { x: padL, y: y(50), width: iw, height: ih / 2, fill: 'rgba(96,165,250,0.05)' }));
+
+      for (const v of [0, 25, 50, 75, 100]) {
+        svg.append(svgEl('line', {
+          x1: padL, x2: W - padR, y1: y(v), y2: y(v),
+          stroke: v === 50 ? '#374151' : '#1f2937', 'stroke-dasharray': v === 50 ? '4 3' : '',
+        }));
+        const t = svgEl('text', { x: padL - 6, y: y(v) + 3, 'text-anchor': 'end' });
+        t.textContent = v;
+        svg.append(t);
+      }
+
+      // x축 라벨 (최대 6개)
+      const step = Math.max(1, Math.ceil(dates.length / 6));
+      dates.forEach((d, i) => {
+        if (i % step !== 0 && i !== dates.length - 1) return;
+        const [, m, dd] = d.split('-').map(Number);
+        const t = svgEl('text', { x: x(i), y: H - 6, 'text-anchor': 'middle' });
+        t.textContent = `${m}/${dd}`;
+        svg.append(t);
+      });
+
+      if (points.length) {
+        const path = points.map((p, k) => `${k ? 'L' : 'M'}${x(p.i).toFixed(1)},${y(p.r.mood).toFixed(1)}`).join(' ');
+        const grad = svgEl('linearGradient', { id: 'lineGrad', x1: 0, y1: 0, x2: 0, y2: 1 });
+        grad.append(svgEl('stop', { offset: '0%', 'stop-color': '#34d399' }));
+        grad.append(svgEl('stop', { offset: '50%', 'stop-color': '#a855f7' }));
+        grad.append(svgEl('stop', { offset: '100%', 'stop-color': '#60a5fa' }));
+        const defs = svgEl('defs');
+        defs.append(grad);
+        svg.append(defs);
+        svg.append(svgEl('path', { d: path, fill: 'none', stroke: 'url(#lineGrad)', 'stroke-width': 2.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+
+        const selected = $('date').value;
+        for (const p of points) {
+          const color = p.r.dominant ? EMOTIONS[p.r.dominant].color : '#9ca3af';
+          const g = svgEl('g', { class: 'pt' });
+          // 터치 영역 확대용 투명 원
+          g.append(svgEl('circle', { cx: x(p.i), cy: y(p.r.mood), r: 12, fill: 'transparent' }));
+          g.append(svgEl('circle', {
+            cx: x(p.i), cy: y(p.r.mood), r: p.d === selected ? 6 : 4.5,
+            fill: color, stroke: p.d === selected ? '#fff' : '#030712', 'stroke-width': 2,
+          }));
+          const title = svgEl('title');
+          title.textContent = `${fmtDate(p.d)} · ${p.r.mood}점${p.r.dominant ? ' · ' + EMOTIONS[p.r.dominant].name : ''}`;
+          g.append(title);
+          g.addEventListener('click', () => selectDate(p.d));
+          svg.append(g);
+        }
+      }
+
+      const box = $('chart');
+      box.replaceChildren(svg);
+      if (!points.length) {
+        box.append(el('div', { class: 'empty' }, '이 기간에 작성한 일기가 없어요.'));
+      }
+
+      renderDistribution(points);
+    }
+
+    function renderDistribution(points) {
+      $('distRange').textContent = `최근 ${rangeDays}일 · ${points.length}개 기록`;
+      const totals = Object.fromEntries(EMO_KEYS.map(k => [k, 0]));
+      for (const p of points) for (const k of EMO_KEYS) totals[k] += p.r.ratio[k];
+      const sum = EMO_KEYS.reduce((s, k) => s + totals[k], 0);
+
+      const box = $('dist');
+      box.replaceChildren();
+      const sorted = [...EMO_KEYS].sort((a, b) => totals[b] - totals[a]);
+      for (const k of sorted) {
+        const pct = sum ? Math.round((totals[k] / sum) * 100) : 0;
+        box.append(el('div', { class: 'bar' },
+          el('span', {}, `${EMOTIONS[k].emoji} ${EMOTIONS[k].name}`),
+          el('div', { class: 'track' }, el('div', { class: 'fill', style: `width:${pct}%;background:${EMOTIONS[k].color}` })),
+          el('span', { class: 'n' }, `${pct}%`)));
+      }
+    }
+
+    function renderEntries() {
+      const box = $('entries');
+      box.replaceChildren();
+      const dates = Object.keys(entries).sort().reverse();
+      if (!dates.length) {
+        box.append(el('div', { class: 'empty' }, '아직 작성한 일기가 없어요. 첫 일기를 써보세요!'));
+        return;
+      }
+      const selected = $('date').value;
+      for (const d of dates) {
+        const r = analyze(entries[d].text);
+        box.append(el('button', { class: 'entry' + (d === selected ? ' on' : ''), onclick: () => selectDate(d) },
+          el('span', { class: 'em' }, r.dominant ? EMOTIONS[r.dominant].emoji : moodLabel(r.mood).emoji),
+          el('div', { class: 'body' },
+            el('div', { class: 'date' }, fmtDate(d)),
+            el('div', { class: 'txt' }, entries[d].text.replace(/\s+/g, ' '))),
+          el('span', { class: 'sc' }, String(r.mood))));
+      }
+    }
+
+    function selectDate(date, scroll = true) {
+      $('date').value = date;
+      $('text').value = entries[date]?.text || '';
+      $('del').classList.toggle('hidden', !entries[date]);
+      $('save').textContent = entries[date] ? '수정하고 다시 분석' : '분석하고 저장';
+      renderAll();
+      if (scroll && entries[date]) $('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function renderAll() {
+      renderResult($('date').value);
+      renderChart();
+      renderEntries();
+    }
+
+    // ===== 이벤트 =====
+    $('save').addEventListener('click', () => {
+      const date = $('date').value;
+      const text = $('text').value.trim();
+      if (!date) return toast('날짜를 선택해주세요.');
+      if (!text) return toast('일기 내용을 입력해주세요.');
+      entries[date] = { text, updatedAt: new Date().toISOString() };
+      if (!persist()) return;
+      toast('저장했어요.');
+      selectDate(date);
+    });
+
+    $('del').addEventListener('click', () => {
+      const date = $('date').value;
+      if (!entries[date] || !confirm(`${fmtDate(date)} 일기를 삭제할까요?`)) return;
+      delete entries[date];
+      persist();
+      toast('삭제했어요.');
+      selectDate(date);
+    });
+
+    $('date').addEventListener('change', e => selectDate(e.target.value));
+
+    $('range').addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      rangeDays = Number(b.dataset.days);
+      for (const x of $('range').children) x.classList.toggle('on', x === b);
+      renderChart();
+    });
+
+    $('export').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(entries, null, 2)], { type: 'application/json' });
+      const a = el('a', { href: URL.createObjectURL(blob), download: `mood-diary-${localISO(new Date())}.json` });
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+
+    $('importBtn').addEventListener('click', () => $('importFile').click());
+    $('importFile').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        let n = 0;
+        for (const [d, v] of Object.entries(data)) {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(d) && v && typeof v.text === 'string') {
+            entries[d] = { text: v.text, updatedAt: v.updatedAt || new Date().toISOString() };
+            n++;
+          }
+        }
+        persist();
+        toast(`${n}개의 일기를 가져왔어요.`);
+        selectDate($('date').value);
+      } catch {
+        toast('올바른 백업 파일이 아니에요.');
+      }
+    });
+
+    // ===== 초기화 =====
+    const todayISO = localISO(new Date());
+    $('date').max = todayISO;
+    selectDate(todayISO, false);
+  </script>
+</body>
+</html>
